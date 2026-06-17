@@ -35,5 +35,12 @@ build/
 ### VS Code ###
 .vscode/
 
-### Mac OS ###
+### OS ###
 .DS_Store
+Thumbs.db
+
+### SlateDB runtime files ###
+*.sst
+*.wal
+*.log
+data/
