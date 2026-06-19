@@ -44,9 +44,9 @@ public class SkipList<K,V> {
     // ==== Random level generation ============
     // P(level >= k) = PROBABILITY^(k-1)
     //there is a 0.5 chance that the lvl will be incremented or it will stop incrementing
-    //which means at each put op we get a 0.5 chance of getting to lvl1 , 0.25 chance of getting to lvl 2
-    //and a 0.125 chance of getting to lvl 3 ....
-    //this also helps in ensuring the tree like structure and search capabilities
+    //which means at each put op we get a  0.5 chance of getting to lvl1 (there is a 1/1 chance of getting to lvl0)
+    // 0.25 chance of getting to lvl 2 and a 0.125 chance of getting to lvl 3 ....
+    //this helps in ensuring the pyramid structure and tree like search capabilities
     private int randomLevel() {
         int lvl = 1;
         while (ThreadLocalRandom.current().nextDouble() < PROBABILITY
@@ -72,7 +72,7 @@ public class SkipList<K,V> {
             update[i] = current;
         }
 
-        //check if key already exists and update value
+        //check if key already exists at lvl0 and update value
         // key already exists — overwrite value, no new node
         Node<K, V> next = update[0].next[0];
         if (next != null && comparator.compare(next.key, key) == 0) {
@@ -135,7 +135,7 @@ public class SkipList<K,V> {
             update[i] = current;
         }
 
-        //not found //we search at 0 level since that is the level
+        //we search at 0 level since that is the level
         // where all the nodes are present
         Node<K, V> target = update[0].next[0];
         if (target == null || comparator.compare(target.key, key) != 0) {
