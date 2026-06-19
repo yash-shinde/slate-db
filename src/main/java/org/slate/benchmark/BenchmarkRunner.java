@@ -5,10 +5,12 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slate.db.InMemoryDatabase;
+import org.slate.memtable.MemTable;
 import org.slate.metrics.MetricsRegistry;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.Throughput)
@@ -23,7 +25,6 @@ public class BenchmarkRunner {
     // M0 adds: hashMapPut(), hashMapGet()
     // M1 adds: skipListPut(), skipListGet()
     // etc.
-
     @Benchmark
     public void baseline() {
         // intentionally empty — measures JMH overhead itself
@@ -58,6 +59,39 @@ public class BenchmarkRunner {
         return state.db.get(state.key);
     }
 
+    //M1 - memtable benchmarks
+    @State(Scope.Benchmark)
+    public static class MemTableState {
+        MemTable memTable;
+        byte[][] keys;
+        byte[] value = "benchmark-value".getBytes();
+        int counter = 0;
+
+        @Setup(Level.Trial)
+        public void setup() {
+            memTable = new MemTable(new MetricsRegistry(), Long.MAX_VALUE); // disable flush threshold for this test
+            keys = new byte[100_000][];
+            Random random = new Random(42);
+            for (int i = 0; i < keys.length; i++) {
+                keys[i] = ("key-" + random.nextInt(1_000_000)).getBytes();
+                memTable.put(keys[i], value);
+            }
+        }
+    }
+
+    @Benchmark
+    public void memTablePut(MemTableState state) {
+        byte[] key = state.keys[state.counter % state.keys.length];
+        state.counter++;
+        state.memTable.put(key, state.value);
+    }
+
+    @Benchmark
+    public Optional<byte[]> memTableGet(MemTableState state) {
+        byte[] key = state.keys[state.counter % state.keys.length];
+        state.counter++;
+        return state.memTable.get(key);
+    }
 
     public static void main(String[] args) throws Exception {
         Options opt = new OptionsBuilder()
