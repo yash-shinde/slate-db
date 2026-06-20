@@ -7,8 +7,12 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slate.db.InMemoryDatabase;
 import org.slate.memtable.MemTable;
 import org.slate.metrics.MetricsRegistry;
+import org.slate.wal.WALRecord;
+import org.slate.wal.WALWriter;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -91,6 +95,32 @@ public class BenchmarkRunner {
         byte[] key = state.keys[state.counter % state.keys.length];
         state.counter++;
         return state.memTable.get(key);
+    }
+
+    //M2 WAL table
+    @State(Scope.Benchmark)
+    public static class WALState {
+        WALWriter writer;
+        byte[] key = "benchmark-key".getBytes();
+        byte[] value = "benchmark-value".getBytes();
+        Path walFile;
+
+        @Setup(Level.Trial)
+        public void setup() throws IOException {
+            walFile = Files.createTempFile("bench-wal-", ".wal");
+            writer = new WALWriter(walFile);
+        }
+
+        @TearDown(Level.Trial)
+        public void teardown() throws IOException {
+            writer.close();
+            Files.deleteIfExists(walFile);
+        }
+    }
+
+    @Benchmark
+    public void walAppend(WALState state) throws IOException {
+        state.writer.append(WALRecord.put(state.key, state.value));
     }
 
     public static void main(String[] args) throws Exception {
