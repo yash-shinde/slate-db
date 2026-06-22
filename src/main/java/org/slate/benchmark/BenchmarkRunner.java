@@ -7,6 +7,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slate.db.InMemoryDatabase;
 import org.slate.memtable.MemTable;
 import org.slate.metrics.MetricsRegistry;
+import org.slate.sstable.SSTableReader;
+import org.slate.sstable.SSTableWriter;
 import org.slate.wal.WALRecord;
 import org.slate.wal.WALWriter;
 
@@ -121,6 +123,46 @@ public class BenchmarkRunner {
     @Benchmark
     public void walAppend(WALState state) throws IOException {
         state.writer.append(WALRecord.put(state.key, state.value));
+    }
+
+    //M3 SSTable with Bloom Filters
+    @State(Scope.Benchmark)
+    public static class SSTableState {
+        SSTableReader reader;
+        byte[][] keys;
+        Path sstableFile;
+        int counter = 0;
+
+        @Setup(Level.Trial)
+        public void setup() throws IOException {
+            sstableFile = Files.createTempFile("bench-sstable-", ".sst");
+            Files.deleteIfExists(sstableFile); // SSTableWriter requires CREATE_NEW
+
+            MemTable memTable = new MemTable(new MetricsRegistry());
+            Random random = new Random(42);
+            keys = new byte[10_000][];
+
+            for (int i = 0; i < keys.length; i++) {
+                keys[i] = ("key-" + random.nextInt(1_000_000) + "-" + i).getBytes();
+                memTable.put(keys[i], "benchmark-value".getBytes());
+            }
+
+            new SSTableWriter().flush(memTable, sstableFile);
+            reader = new SSTableReader(sstableFile);
+        }
+
+        @TearDown(Level.Trial)
+        public void teardown() throws IOException {
+            reader.close();
+            Files.deleteIfExists(sstableFile);
+        }
+    }
+
+    @Benchmark
+    public Optional<SSTableReader.Value> sstableGet(SSTableState state) throws IOException {
+        byte[] key = state.keys[state.counter % state.keys.length];
+        state.counter++;
+        return state.reader.get(key);
     }
 
     public static void main(String[] args) throws Exception {
