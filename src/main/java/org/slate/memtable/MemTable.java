@@ -134,7 +134,7 @@ public class MemTable {
         return skipList.size();
     }
 
-    /** Sorted forward iteration — used by SSTable flush in M3. */
+    /** Sorted forward iteration — used by SSTable flush in. */
     public Stream<SkipList.Node<BytesKey, Entry>> entries() {
         Iterator<SkipList.Node<BytesKey, Entry>> it = skipList.iterator();
         Spliterator<SkipList.Node<BytesKey, Entry>> spliterator =

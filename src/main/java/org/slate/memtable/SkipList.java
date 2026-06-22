@@ -81,8 +81,8 @@ public class SkipList<K,V> {
             return oldValue;
         }
 
-        //we are getting to new levels that dont have any head pointers to them
         int newLevel = randomLevel();
+        //we are getting to new levels that don't have any head pointers to them
         if (newLevel > level) {
             for (int i = level; i < newLevel; i++) {
                 update[i] = head;

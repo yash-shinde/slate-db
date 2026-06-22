@@ -28,6 +28,7 @@ public class WALWriter implements AutoCloseable{
     /**
      * Appends a record and fsyncs before returning.
      * Record layout: [checksum(4)][opType(1)][keyLen(4)][key][valueLen(4)][value]
+     * (each of the sizes is in bytes)
      * Checksum covers everything AFTER the checksum field itself.
      */
     public synchronized void append(WALRecord record) throws IOException {
