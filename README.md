@@ -1,4 +1,3 @@
-# slate-db
 # SlateDB
 
 A distributed LSM-tree key-value database built from scratch in Java 21.
